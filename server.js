@@ -16,6 +16,9 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
+if (process.env.VERCEL) {
+    app.use('/uploads', express.static('/tmp'));
+}
 
 // Body parser
 app.use(express.urlencoded({ extended: true }));
@@ -91,6 +94,10 @@ app.get('/dashboard', protect, async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`DesignHive running on http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`DesignHive running on http://localhost:${PORT}`));
+}
 
+// Export for Vercel serverless functions
+module.exports = app;

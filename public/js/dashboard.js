@@ -26,6 +26,26 @@ document.addEventListener('click', function (event) {
     });
 });
 
+// Toggle Like button visually
+window.toggleLike = function (btn) {
+    const isLiked = btn.getAttribute('data-liked') === 'true';
+    const icon = btn.querySelector('svg'); // Lucide replaces <i> with <svg>
+
+    if (isLiked) {
+        btn.setAttribute('data-liked', 'false');
+        btn.classList.remove('liked');
+        // Remove solid fill
+        if (icon) icon.style.fill = 'none';
+        btn.style.color = ''; // reset color
+    } else {
+        btn.setAttribute('data-liked', 'true');
+        btn.classList.add('liked');
+        // Add solid fill
+        if (icon) icon.style.fill = 'currentColor';
+        btn.style.color = 'var(--accent-color)'; // Apply DesignHive pink/red
+    }
+}
+
 // Toggle edit form
 window.toggleEdit = function (postId) {
     const form = document.getElementById('edit-form-' + postId);
@@ -42,28 +62,62 @@ window.toggleEdit = function (postId) {
     dropdown.classList.remove('show');
 }
 
-// Image Preview Logic
+// Image / Video Preview Logic
 const imageInput = document.getElementById('imageInput');
 const previewContainer = document.getElementById('image-preview-container');
 const previewImage = document.getElementById('image-preview');
+const previewVideo = document.getElementById('video-preview');
 const removeBtn = document.getElementById('remove-image-btn');
 
 if (imageInput) {
     imageInput.addEventListener('change', function () {
         if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                previewImage.src = e.target.result;
+            const file = this.files[0];
+            const isVideo = file.type.startsWith('video/');
+
+            if (isVideo) {
+                // Video Preview
+                previewImage.style.display = 'none';
+                previewVideo.style.display = 'block';
+
+                // For videos, createObjectURL is faster and cleaner than base64
+                const videoUrl = URL.createObjectURL(file);
+                previewVideo.src = videoUrl;
+
                 previewContainer.style.display = 'block';
-                lucide.createIcons(); // re-init icons just in case the X isn't rendering
+                lucide.createIcons();
+            } else {
+                // Image Preview
+                previewVideo.style.display = 'none';
+                previewImage.style.display = 'block';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImage.src = e.target.result;
+                    previewImage.classList.remove('loaded'); // reset class for new images
+
+                    previewImage.onload = () => {
+                        previewImage.classList.add('loaded');
+                    };
+
+                    previewContainer.style.display = 'block';
+                    lucide.createIcons();
+                }
+                reader.readAsDataURL(file);
             }
-            reader.readAsDataURL(this.files[0]);
         }
     });
 
     removeBtn.addEventListener('click', function () {
         imageInput.value = ''; // clear the file input
         previewContainer.style.display = 'none';
+
         previewImage.src = '';
+        previewImage.style.display = 'none';
+
+        previewVideo.pause();
+        previewVideo.removeAttribute('src');
+        previewVideo.load();
+        previewVideo.style.display = 'none';
     });
 }

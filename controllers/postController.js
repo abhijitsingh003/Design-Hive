@@ -10,7 +10,7 @@ const createPost = async (req, res) => {
 
         let imagePath = '';
         if (req.file) {
-            imagePath = '/uploads/' + req.file.filename;
+            imagePath = req.file.path; // Cloudinary returns the full URL in req.file.path
         }
 
         if (!content && !imagePath) {
@@ -81,13 +81,9 @@ const deletePost = async (req, res) => {
             return res.redirect('/dashboard');
         }
 
-        // Delete associated image file if it exists
-        if (post.image) {
-            const imagePath = path.join(__dirname, '../public', post.image);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        }
+        // We no longer delete from the local filesystem because images are on Cloudinary.
+        // Optional: Add Cloudinary deletion logic here using cloudinary.uploader.destroy()
+        // if you want to also remove the image from your Cloudinary account.
 
         await post.deleteOne();
 

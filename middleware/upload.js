@@ -1,46 +1,53 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
+require('dotenv').config();
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Set Storage Engine
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Check File Type
-function checkFileType(file, cb) {
-    // Allowed ext
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    // Check ext
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    // Check mime
+// Set up Cloudinary storage engine
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'designhive_uploads',
+        resource_type: 'auto', // Important for allowing videos
+        format: async (req, file) => {
+            const allowedFormats = [
+                'jpeg', 'jpg', 'png', 'gif', 'webp',
+                'mp4', 'webm', 'mov', 'avi'
+            ];
+            const ext = file.mimetype.split('/')[1];
+            if (allowedFormats.includes(ext)) {
+                return ext;
+            }
+            return 'png'; // default format
+        },
+        public_id: (req, file) => file.fieldname + '-' + Date.now(),
+    },
+});
+
+// Check File Type (simplified since Cloudinary handles a lot of this)
+function fileFilter(req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif|webp|mp4|webm|mov|avi|quicktime|x-msvideo/;
     const mimetype = filetypes.test(file.mimetype);
 
-    if (mimetype && extname) {
+    if (mimetype) {
         return cb(null, true);
     } else {
-        cb(new Error('Error: Images Only!'));
+        cb(new Error('Error: Images and Videos Only!'));
     }
 }
 
 // Init Upload
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5000000 }, // 5MB limit
-    fileFilter: function (req, file, cb) {
-        checkFileType(file, cb);
-    }
+    limits: { fileSize: 50000000 }, // Increased to 50MB for videos
+    fileFilter: fileFilter
 });
 
 module.exports = upload;
