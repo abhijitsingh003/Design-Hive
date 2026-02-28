@@ -32,6 +32,9 @@ const postLogin = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
             maxAge: 1000 * 60 * 60 * 24 // 1 day
         });
 
@@ -84,6 +87,9 @@ const postSignup = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
             maxAge: 1000 * 60 * 60 * 24 // 1 day
         });
 
@@ -98,7 +104,7 @@ const postSignup = async (req, res) => {
 
 // GET /logout
 const logout = (req, res) => {
-    res.clearCookie('token');
+    res.clearCookie('token', { path: '/' });
     req.flash('error', 'Successfully logged out.');
     res.redirect('/login');
 };
